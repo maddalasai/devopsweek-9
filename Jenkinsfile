@@ -27,7 +27,15 @@ pipeline {
                     usernameVariable: 'DOCKERHUB_USERNAME',
                     passwordVariable: 'DOCKERHUB_PASSWORD'
                 )]) {
-                    bat 'echo %DOCKERHUB_PASSWORD% | docker login -u %DOCKERHUB_USERNAME% --password-stdin'
+                    powershell '''
+                        $ErrorActionPreference = "Stop"
+                        $env:DOCKERHUB_PASSWORD |
+                            docker login -u $env:DOCKERHUB_USERNAME --password-stdin
+
+                        if ($LASTEXITCODE -ne 0) {
+                            exit $LASTEXITCODE
+                        }
+                    '''
                 }
             }
         }
@@ -58,9 +66,11 @@ pipeline {
         success {
             echo 'Week 9 pipeline completed successfully.'
         }
+
         failure {
             echo 'Pipeline failed. Check the Jenkins Console Output.'
         }
+
         always {
             bat 'docker logout'
         }
