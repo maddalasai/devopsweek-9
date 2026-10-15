@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: week9-registration-deployment
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: week9-registration
+  template:
+    metadata:
+      labels:
+        app: week9-registration
+    spec:
+      containers:
+        - name: week9-registration
+          image: 141034durga/week9-registration:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
