@@ -21,6 +21,14 @@ pipeline {
             }
         }
 
+        stage('Check Docker Access') {
+            steps {
+                bat 'whoami'
+                bat 'docker version'
+                bat 'docker info'
+            }
+        }
+
         stage('Docker Hub Login') {
             steps {
                 withCredentials([usernamePassword(
@@ -42,6 +50,9 @@ pipeline {
                             throw "Docker Hub token is missing."
                         }
 
+                        Write-Host "Docker Hub username is present."
+                        Write-Host "Docker Hub token is present."
+
                         $psi = New-Object System.Diagnostics.ProcessStartInfo
                         $psi.FileName = "docker.exe"
                         $psi.Arguments = "login -u $username --password-stdin"
@@ -62,7 +73,6 @@ pipeline {
 
                         $stdout = $process.StandardOutput.ReadToEnd()
                         $stderr = $process.StandardError.ReadToEnd()
-
                         $process.WaitForExit()
 
                         if ($stdout) {
