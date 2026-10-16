@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -27,33 +28,49 @@ pipeline {
                     usernameVariable: 'DOCKERHUB_USERNAME',
                     passwordVariable: 'DOCKERHUB_PASSWORD'
                 )]) {
-                    // Diagnostic: shows what Jenkins actually holds (no secret printed)
-                    powershell '''
-                        $u = $env:DOCKERHUB_USERNAME
-                        $p = $env:DOCKERHUB_PASSWORD
-                        Write-Host "Username: [$u] length=$($u.Length)"
-                        Write-Host "Token length: $($p.Length)"
-                        Write-Host "Starts with dckr_pat_: $($p.StartsWith('dckr_pat_'))"
-                        Write-Host "Has leading/trailing whitespace: $($p -ne $p.Trim())"
-                    '''
-
-                    // Actual login
                     powershell '''
                         $ErrorActionPreference = "Stop"
 
-                        if ([string]::IsNullOrWhiteSpace($env:DOCKERHUB_USERNAME)) {
-                            throw "Docker Hub username is empty"
+                        $username = $env:DOCKERHUB_USERNAME
+                        $token = $env:DOCKERHUB_PASSWORD
+
+                        if ([string]::IsNullOrWhiteSpace($username)) {
+                            throw "Docker Hub username is missing."
                         }
 
-                        if ([string]::IsNullOrWhiteSpace($env:DOCKERHUB_PASSWORD)) {
-                            throw "Docker Hub token is empty"
+                        if ([string]::IsNullOrWhiteSpace($token)) {
+                            throw "Docker Hub token is missing."
                         }
 
-                        $env:DOCKERHUB_PASSWORD |
-                            docker login -u $env:DOCKERHUB_USERNAME --password-stdin
+                        $psi = New-Object System.Diagnostics.ProcessStartInfo
+                        $psi.FileName = "docker.exe"
+                        $psi.Arguments = "login -u $username --password-stdin"
+                        $psi.UseShellExecute = $false
+                        $psi.RedirectStandardInput = $true
+                        $psi.RedirectStandardOutput = $true
+                        $psi.RedirectStandardError = $true
+                        $psi.CreateNoWindow = $true
 
-                        if ($LASTEXITCODE -ne 0) {
-                            throw "Docker Hub login failed with exit code $LASTEXITCODE"
+                        $process = New-Object System.Diagnostics.Process
+                        $process.StartInfo = $psi
+
+                        [void]$process.Start()
+
+                        $process.StandardInput.Write($token)
+                        $process.StandardInput.WriteLine()
+                        $process.StandardInput.Close()
+
+                        $stdout = $process.StandardOutput.ReadToEnd()
+                        $stderr = $process.StandardError.ReadToEnd()
+
+                        $process.WaitForExit()
+
+                        if ($stdout) {
+                            Write-Host $stdout
+                        }
+
+                        if ($process.ExitCode -ne 0) {
+                            throw "Docker Hub login failed. $stderr"
                         }
 
                         Write-Host "Docker Hub login successful."
