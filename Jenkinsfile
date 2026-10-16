@@ -40,6 +40,13 @@ pipeline {
 
                         $username = $env:DOCKERHUB_USERNAME
                         $token = $env:DOCKERHUB_PASSWORD
+                        $bytes = [System.Text.Encoding]::UTF8.GetBytes($token)
+$sha = [System.Security.Cryptography.SHA256]::Create()
+$fingerprint = [BitConverter]::ToString(
+    $sha.ComputeHash($bytes)
+).Replace("-", "").Substring(0, 8)
+
+Write-Host "Jenkins token fingerprint: $fingerprint"
 
                         if ([string]::IsNullOrWhiteSpace($username) -or
                             [string]::IsNullOrWhiteSpace($token)) {
