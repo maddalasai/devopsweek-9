@@ -25,7 +25,6 @@ pipeline {
             steps {
                 bat 'whoami'
                 bat 'docker version'
-                bat 'docker info'
             }
         }
 
@@ -42,16 +41,10 @@ pipeline {
                         $username = $env:DOCKERHUB_USERNAME
                         $token = $env:DOCKERHUB_PASSWORD
 
-                        if ([string]::IsNullOrWhiteSpace($username)) {
-                            throw "Docker Hub username is missing."
+                        if ([string]::IsNullOrWhiteSpace($username) -or
+                            [string]::IsNullOrWhiteSpace($token)) {
+                            throw "Docker Hub credentials are missing."
                         }
-
-                        if ([string]::IsNullOrWhiteSpace($token)) {
-                            throw "Docker Hub token is missing."
-                        }
-
-                        Write-Host "Docker Hub username is present."
-                        Write-Host "Docker Hub token is present."
 
                         $psi = New-Object System.Diagnostics.ProcessStartInfo
                         $psi.FileName = "docker.exe"
