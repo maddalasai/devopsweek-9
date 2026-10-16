@@ -24,18 +24,32 @@ pipeline {
         stage('Docker Hub Login') {
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
+                    credentialsId: "${DOCKER_CREDENTIALS_ID}",
                     usernameVariable: 'DOCKERHUB_USERNAME',
                     passwordVariable: 'DOCKERHUB_PASSWORD'
                 )]) {
                     powershell '''
                         $ErrorActionPreference = "Stop"
+
+                        if ([string]::IsNullOrWhiteSpace($env:DOCKERHUB_USERNAME)) {
+                            throw "Docker Hub username is empty"
+                        }
+
+                        if ([string]::IsNullOrWhiteSpace($env:DOCKERHUB_PASSWORD)) {
+                            throw "Docker Hub token is empty"
+                        }
+
+                        Write-Host "Docker Hub username is present."
+                        Write-Host "Docker Hub token is present."
+
                         $env:DOCKERHUB_PASSWORD |
                             docker login -u $env:DOCKERHUB_USERNAME --password-stdin
 
                         if ($LASTEXITCODE -ne 0) {
-                            exit $LASTEXITCODE
+                            throw "Docker Hub login failed with exit code $LASTEXITCODE"
                         }
+
+                        Write-Host "Docker Hub login successful."
                     '''
                 }
             }
