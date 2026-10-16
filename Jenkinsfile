@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -28,6 +27,17 @@ pipeline {
                     usernameVariable: 'DOCKERHUB_USERNAME',
                     passwordVariable: 'DOCKERHUB_PASSWORD'
                 )]) {
+                    // Diagnostic: shows what Jenkins actually holds (no secret printed)
+                    powershell '''
+                        $u = $env:DOCKERHUB_USERNAME
+                        $p = $env:DOCKERHUB_PASSWORD
+                        Write-Host "Username: [$u] length=$($u.Length)"
+                        Write-Host "Token length: $($p.Length)"
+                        Write-Host "Starts with dckr_pat_: $($p.StartsWith('dckr_pat_'))"
+                        Write-Host "Has leading/trailing whitespace: $($p -ne $p.Trim())"
+                    '''
+
+                    // Actual login
                     powershell '''
                         $ErrorActionPreference = "Stop"
 
@@ -38,9 +48,6 @@ pipeline {
                         if ([string]::IsNullOrWhiteSpace($env:DOCKERHUB_PASSWORD)) {
                             throw "Docker Hub token is empty"
                         }
-
-                        Write-Host "Docker Hub username is present."
-                        Write-Host "Docker Hub token is present."
 
                         $env:DOCKERHUB_PASSWORD |
                             docker login -u $env:DOCKERHUB_USERNAME --password-stdin
